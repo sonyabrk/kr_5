@@ -1,0 +1,249 @@
+<!DOCTYPE html>
+<html lang="ru">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>API Генератора Цитат</title>
+    <style>
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+        }
+        
+        body {
+            font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+            line-height: 1.6;
+            color: #333;
+            min-height: 100vh;
+        }
+        
+        .example {
+            background: #ecf0f1;
+            padding: 15px;
+            border-radius: 5px;
+            margin-top: 15px;
+            font-family: monospace;
+            white-space: pre-wrap;
+            word-wrap: break-word;
+        }
+        
+        .test-area {
+            background: white;
+            border-radius: 10px;
+            padding: 30px;
+            margin-top: 40px;
+            box-shadow: 0 4px 6px rgba(0,0,0,0.1);
+        }
+        
+        .test-controls {
+            display: flex;
+            gap: 10px;
+            margin-bottom: 20px;
+            flex-wrap: wrap;
+        }
+        
+        select, input, button {
+            padding: 10px 15px;
+            border: 2px solid #ddd;
+            border-radius: 5px;
+            font-size: 1rem;
+        }
+        
+        button {
+            background: #3498db;
+            color: white;
+            border: none;
+            cursor: pointer;
+            transition: background 0.3s;
+        }
+        
+        
+        #response {
+            background: #2c3e50;
+            color: white;
+            padding: 20px;
+            border-radius: 5px;
+            min-height: 200px;
+            font-family: monospace;
+            white-space: pre-wrap;
+            overflow-x: auto;
+        }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <header>
+            <h1>API Генератора Случайных Цитат</h1>
+            <p class="subtitle">Express.js REST API для управления коллекцией цитат</p>
+            <div class="server-status" id="status">Статус: Загрузка...</div>
+        </header>
+        
+        <div class="api-section">
+            <h2>Основные эндпоинты</h2>
+            
+            <div class="endpoint">
+                <span class="method get">GET</span>
+                <strong>Все цитаты</strong>
+                <div class="url">/api/quotes</div>
+                <p>Получить все цитаты. Поддерживает query-параметры:</p>
+                <p><span class="query">limit</span> - ограничить количество (например: ?limit=3)</p>
+                <p><span class="query">author</span> - фильтр по автору (например: ?author=джобс)</p>
+            </div>
+            
+            <div class="endpoint">
+                <span class="method get">GET</span>
+                <strong>Случайная цитата</strong>
+                <div class="url">/api/quotes/random</div>
+                <p>Получить одну случайную цитату</p>
+            </div>
+            
+            <div class="endpoint">
+                <span class="method get">GET</span>
+                <strong>Поиск цитат</strong>
+                <div class="url">/api/quotes/search?q=<span class="query">текст</span></div>
+                <p>Поиск по тексту или автору</p>
+            </div>
+            
+            <div class="endpoint">
+                <span class="method get">GET</span>
+                <strong>Цитата по ID</strong>
+                <div class="url">/api/quotes/<span class="param">id</span></div>
+                <p>Получить конкретную цитату по её ID</p>
+            </div>
+            
+            <div class="endpoint">
+                <span class="method post">POST</span>
+                <strong>Добавить цитату</strong>
+                <div class="url">/api/quotes</div>
+                <p>Добавить новую цитату (требует JSON тело)</p>
+                <div class="example">
+{
+    "text": "Новая цитата",
+    "author": "Автор"
+}
+                </div>
+            </div>
+            
+            <div class="endpoint">
+                <span class="method put">PUT</span>
+                <strong>Обновить цитату</strong>
+                <div class="url">/api/quotes/<span class="param">id</span></div>
+                <p>Обновить существующую цитату</p>
+            </div>
+            
+            <div class="endpoint">
+                <span class="method delete">DELETE</span>
+                <strong>Удалить цитату</strong>
+                <div class="url">/api/quotes/<span class="param">id</span></div>
+                <p>Удалить цитату по ID</p>
+            </div>
+        </div>
+        
+        <div class="test-area">
+            <h2>Тестирование API</h2>
+            
+            <div class="test-controls">
+                <select id="method">
+                    <option value="GET">GET</option>
+                    <option value="POST">POST</option>
+                    <option value="PUT">PUT</option>
+                    <option value="DELETE">DELETE</option>
+                </select>
+                
+                <input type="text" id="url" placeholder="URL (например: /api/quotes)" value="/api/quotes" style="flex-grow: 1;">
+                
+                <button onclick="testApi()">Отправить запрос</button>
+                <button onclick="testRandom()">Случайная цитата</button>
+            </div>
+            
+            <div>
+                <h3>Тело запроса (для POST/PUT):</h3>
+                <textarea id="requestBody" rows="4" style="width: 100%; padding: 10px; border: 2px solid #ddd; border-radius: 5px; font-family: monospace;" placeholder='{"text": "Текст цитаты", "author": "Автор"}'></textarea>
+            </div>
+            
+            <h3>Ответ:</h3>
+            <div id="response">Нажмите "Отправить запрос" для тестирования...</div>
+        </div>
+    </div>
+    
+    <script>
+        async function checkStatus() {
+            try {
+                const response = await fetch('/');
+                document.getElementById('status').innerHTML = `Статус: Сервер работает (${response.status})`;
+                document.getElementById('status').style.background = '#2ecc71';
+            } catch (error) {
+                document.getElementById('status').innerHTML = 'Статус: Сервер не доступен';
+                document.getElementById('status').style.background = '#e74c3c';
+            }
+        }
+        
+        async function testApi() {
+            const method = document.getElementById('method').value;
+            const url = document.getElementById('url').value;
+            const requestBody = document.getElementById('requestBody').value;
+            const responseDiv = document.getElementById('response');
+            
+            responseDiv.innerHTML = 'Отправка запроса...';
+            
+            const options = {
+                method: method,
+                headers: {
+                    'Content-Type': 'application/json'
+                }
+            };
+            
+            if (method === 'POST' || method === 'PUT') {
+                if (requestBody) {
+                    try {
+                        JSON.parse(requestBody);
+                        options.body = requestBody;
+                    } catch (e) {
+                        responseDiv.innerHTML = 'Ошибка: Невалидный JSON в теле запроса';
+                        return;
+                    }
+                }
+            }
+            
+            try {
+                const response = await fetch(url, options);
+                const data = await response.json();
+                
+                responseDiv.innerHTML = `Статус: ${response.status} ${response.statusText}\n\n${JSON.stringify(data, null, 2)}`;
+            } catch (error) {
+                responseDiv.innerHTML = `Ошибка: ${error.message}`;
+            }
+        }
+        
+        // Тест случайной цитаты
+        async function testRandom() {
+            document.getElementById('url').value = '/api/quotes/random';
+            document.getElementById('method').value = 'GET';
+            testApi();
+        }
+        
+        // Примеры для быстрого тестирования
+        function loadExamples() {
+            const examples = {
+                'GET /api/quotes': '/api/quotes',
+                'GET с limit': '/api/quotes?limit=2',
+                'GET с фильтром': '/api/quotes?author=джобс',
+                'Поиск': '/api/quotes/search?q=успех',
+                'По ID': '/api/quotes/1'
+            };
+            
+            // Добавляем примеры в выпадающий список или где удобно
+        }
+        
+        // Запускаем проверку статуса при загрузке
+        document.addEventListener('DOMContentLoaded', () => {
+            checkStatus();
+            loadExamples();
+            
+            // Авто-тест при загрузке
+            setTimeout(testApi, 1000);
+        });
+    </script>
+</body>
+</html>
